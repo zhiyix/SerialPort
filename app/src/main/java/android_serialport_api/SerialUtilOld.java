@@ -14,26 +14,28 @@ import java.nio.charset.Charset;
  * Created by Administrator on 2016/7/22.
  */
 public class SerialUtilOld {
-    private  SerialPort serialPort;
-    private  InputStream inputStream;
-    private  OutputStream outputStream;
-    private  volatile int size=-1;
-    private static final int MAX =512;
+    private SerialPort mSerialPort;
+    private InputStream mInputStream;
+    private OutputStream mOutputStream;
+    private volatile int size = -1;
+    private static final int MAX = 512;
     private String path;
 
     public SerialUtilOld(String path, int baudrate, int flags ) throws NullPointerException{
         try {
-            serialPort=new SerialPort(new File(path),baudrate,flags);
+            mSerialPort = new SerialPort(new File(path),baudrate,flags);
         } catch (IOException e) {
             e.printStackTrace();
         }catch (SecurityException e) {
             e.printStackTrace();
         }
-        if(serialPort!=null){
+        if(mSerialPort!=null){
             //设置读、写
-            inputStream=serialPort.getInputStream();
-            outputStream=serialPort.getOutputStream();
-        }else throw new NullPointerException("串口设置有误");
+            mInputStream = mSerialPort.getInputStream();
+            mOutputStream = mSerialPort.getOutputStream();
+        } else {
+            throw new NullPointerException("串口设置有误");
+        }
     }
 
     /**
@@ -51,28 +53,58 @@ public class SerialUtilOld {
     public synchronized byte[] getData() throws NullPointerException{
         //上锁，每次只能一个线程在取得数据
         try {
-            byte [] buffer=new byte[MAX];
-            if (inputStream==null) throw new NullPointerException("inputStream is null");
+            byte [] buffer = new byte[MAX];
+            if (mInputStream == null) {
+                throw new NullPointerException("mInputStream is null");
+            }
             //一次最多可读Max的长度
-            size=inputStream.read(buffer);
-            if (size>0) return buffer;
-            else return null;
+            size = mInputStream.read(buffer);
+            if (size > 0) {
+                return buffer;
+            } else {
+                return null;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
-    public synchronized byte[] getDataByte()throws NullPointerException{
-        byte [] buffer=new byte[MAX];
-        if (inputStream==null) throw new NullPointerException("is null");
+    public synchronized byte[] getDataByte() throws NullPointerException{
+        byte [] buffer = new byte[MAX];
+        if (mInputStream == null) {
+            throw new NullPointerException("mInputStream is null");
+        }
         try {
-            if (inputStream.available()>0){
-                inputStream.read(buffer);
+            if (mInputStream.available() > 0){
+                mInputStream.read(buffer);
                 return buffer;
-            }else return null;
+            } else {
+                return null;
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public int read(ByteBuffer byteBuffer) throws NullPointerException{
+        byte [] buffer = new byte[MAX];
+        if (mInputStream == null) {
+            throw new NullPointerException("mInputStream is null");
+        }
+        try {
+            if (mInputStream.available() > 0){
+                int size = mInputStream.read(buffer, 0, MAX);
+                if (size > 0) {
+                    byteBuffer = ByteBuffer.wrap(buffer, 0, size);
+                }
+                return size;
+            } else {
+                return -1;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return -1;
         }
     }
 
@@ -81,9 +113,9 @@ public class SerialUtilOld {
      * @param data 显示的16进制的字符串
      */
     public synchronized void setData(byte[] data) throws NullPointerException{
-        if (outputStream==null) throw new NullPointerException("outputStream为空");
+        if (mOutputStream==null) throw new NullPointerException("mOutputStream is null");
         try {
-            outputStream.write(data);
+            mOutputStream.write(data);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -96,11 +128,11 @@ public class SerialUtilOld {
      * @return
      */
     public static String bytesToHexString(final byte[] buffer, final int size){
-        StringBuilder stringBuilder=new StringBuilder("");
-        if (buffer==null||size<=0) return null;
-        for (int i = 0; i <size ; i++) {
-            String hex=Integer.toHexString(buffer[i]&0xff);
-            if(hex.length()<2) stringBuilder.append(0);
+        StringBuilder stringBuilder = new StringBuilder("");
+        if (buffer == null || size <= 0) return null;
+        for (int i = 0; i < size ; i++) {
+            String hex = Integer.toHexString(buffer[i]&0xff);
+            if(hex.length() < 2) stringBuilder.append(0);
             stringBuilder.append(hex);
         }
         return stringBuilder.toString();
@@ -126,5 +158,4 @@ public class SerialUtilOld {
     private static byte charToByte(char c) {
         return (byte) "0123456789ABCDEF".indexOf(c);
     }
-
 }
