@@ -14,4 +14,6 @@ public interface SerialView {
     void onSerialStatusChanged(boolean isOpend);
 
     void updateBaudrateList(String[] baudrates);
+
+    String getTitle();
 }

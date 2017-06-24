@@ -129,6 +129,9 @@ public class SerialService extends IntentService {
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         sendMessage("010300000037041C");
+        if(mCallback != null) {
+            mCallback.onHandle("010300000037041C");
+        }
         Log.d(TAG, "Received an new Intent " + intent + ", ID : " + id);
     }
 
@@ -325,6 +328,8 @@ public class SerialService extends IntentService {
     }
 
     public interface Callback {
+        public void onHandle(String data);
+
         public void onDataSend(String data);
 
         public void onDataReceived(String data);

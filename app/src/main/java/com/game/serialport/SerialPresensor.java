@@ -8,9 +8,12 @@ import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
-import android_serialport_api.SerialUtilOld;
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.content.res.Resources;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 
-import static com.game.serialport.R.string.device;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
@@ -49,7 +52,8 @@ public class SerialPresensor implements ServiceConnection {
         mSerialView.updateBaudrateList(mBaudrates);
 
         mSerialView.onSerialStatusChanged(mSerialService.isSerialOpend());
-        Log.d(TAG, "onServiceConnected," + mSerialService + ", ID : " + mSerialService.getId());
+        Log.d(TAG, "onServiceConnected, {" + mSerialService +
+                "}, ID : " + mSerialService.getId());
     }
 
     @Override
@@ -59,10 +63,33 @@ public class SerialPresensor implements ServiceConnection {
         Log.e(TAG, "onServiceDisconnected()");
     }
 
+    private void onAlarmHandle(String data) {
+        Log.i(TAG, "Got a new result: " + data);
+
+        Resources resources = mContext.getResources();
+        Intent i = MainActivity.newIntent(mContext, mSerialView.getTitle());
+        PendingIntent pi = PendingIntent
+                .getActivity(mContext, 0, i, 0);
+
+        Notification notification = new NotificationCompat.Builder(mContext)
+                .setTicker(resources.getString(R.string.new_pictures_title))
+                .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                .setContentTitle(resources.getString(R.string.new_pictures_title))
+                .setContentText(resources.getString(R.string.new_pictures_text))
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build();
+
+        NotificationManagerCompat notificationManager =
+                NotificationManagerCompat.from(mContext);
+        notificationManager.notify(0, notification);
+    }
+
     public void doBindService() {
-        Intent intent = SerialService.setServiceAlarm(mContext, POLL_INTERVAL, true);
-                /*SerialService.newIntent(mContext);
-        mContext.startService(intent);*/
+        Intent intent =
+                /*SerialService.setServiceAlarm(mContext, POLL_INTERVAL, true);*/
+                SerialService.newIntent(mContext);
+        mContext.startService(intent);
         mContext.bindService(intent, this, Context.BIND_AUTO_CREATE);
     }
 
@@ -109,7 +136,16 @@ public class SerialPresensor implements ServiceConnection {
         Log.i(TAG, "doToggleService, STATUS : " + shouldStartAlarm);
     }
 
+    public boolean isServiceAlarmOn() {
+        return SerialService.isServiceAlarmOn(mContext);
+    }
+
     private SerialService.Callback mCallback = new SerialService.Callback() {
+
+        @Override
+        public void onHandle(String data) {
+            onAlarmHandle(data);
+        }
 
         @Override
         public void onDataSend(String data) {
