@@ -78,6 +78,7 @@ public class SerialService extends IntentService {
             alarmManager.cancel(pendingIntent);
             pendingIntent.cancel();
         }
+        Log.i(TAG, "setServiceAlarm, isOn : " + isOn);
         return intent;
     }
 
@@ -132,7 +133,7 @@ public class SerialService extends IntentService {
         if(mCallback != null) {
             mCallback.onHandle("010300000037041C");
         }
-        Log.d(TAG, "Received an new Intent " + intent + ", ID : " + id);
+        Log.d(TAG, "Received an new " + intent + ", ID : " + id);
     }
 
 

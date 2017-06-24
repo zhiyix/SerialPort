@@ -118,8 +118,10 @@ public class SerialFragment extends Fragment
 
         MenuItem toggleItem = menu.findItem(R.id.menu_item_toggle_polling);
         if (mSerialPresensor.isServiceAlarmOn()) {
+            toggleItem.setIcon(android.R.drawable.ic_media_pause);
             toggleItem.setTitle(R.string.stop_polling);
         } else {
+            toggleItem.setIcon(android.R.drawable.ic_media_play);
             toggleItem.setTitle(R.string.start_polling);
         }
         Log.d(TAG, "选项菜单布置完成");
@@ -160,7 +162,16 @@ public class SerialFragment extends Fragment
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_item_toggle_polling:
+                int msg;
                 mSerialPresensor.doToggleService();
+                if (mSerialPresensor.isServiceAlarmOn()) {
+                    item.setTitle(R.string.stop_polling);
+                    msg = R.string.start_polling;
+                } else {
+                    item.setTitle(R.string.start_polling);
+                    msg = R.string.stop_polling;
+                }
+                Toast.makeText(getActivity(), msg, Toast.LENGTH_LONG).show();
                 getActivity().invalidateOptionsMenu();
                 return true;
         }
@@ -202,6 +213,21 @@ public class SerialFragment extends Fragment
         mSendDataEditText.setText("010300000037041C");
         mSendTextView = (TextView) view.findViewById(R.id.send_data);
         mReceivedTextView = (TextView) view.findViewById(R.id.received_data);
+
+        Button mSendClearButton = (Button) view.findViewById(R.id.send_clear_bt);
+        mSendClearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSendClear(v);
+            }
+        });
+        Button mRecvClearButton = (Button) view.findViewById(R.id.receive_clear_bt);
+        mRecvClearButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onReceiveClear(v);
+            }
+        });
     }
 
     @Override
@@ -261,7 +287,7 @@ public class SerialFragment extends Fragment
         }
         sb.append(data);
         mSendTextView.setText(sb.toString());
-        Log.d(TAG, "SerialService.onDataSend()");
+        Log.d(TAG, "Serial-onDataSend()");
     }
 
     @Override
@@ -274,7 +300,7 @@ public class SerialFragment extends Fragment
         }
         sb.append(data);
         mReceivedTextView.setText(sb.toString());
-        Log.d(TAG, "SerialService.onDataReceived()");
+        Log.d(TAG, "Serial-onDataReceived()");
     }
 
     @Override

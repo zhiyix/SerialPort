@@ -42,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:padding="4dp"
-                android:text="@string/baudrate"/>
+                android:text="@string/baudRate"/>
 
             <Spinner
                 android:id="@+id/baudrates"
@@ -51,7 +51,7 @@
                 android:layout_weight="1"
                 android:entries="@array/baudrates"
                 android:gravity="center"
-                android:prompt="@string/baudrate"
+                android:prompt="@string/baudRate"
                 android:spinnerMode="dialog"/>
     </LinearLayout>
 
@@ -101,11 +101,12 @@
             </ScrollView>
 
             <Button
+                android:id="@+id/send_clear_bt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:onClick="onSendClear"
                 android:text="@string/clear" />
+            <!-- android:onClick="onSendClear" -->
         </LinearLayout>
 
         <Space
@@ -136,11 +137,12 @@
             </ScrollView>
 
             <Button
+                android:id="@+id/receive_clear_bt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:onClick="onReceiveClear"
                 android:text="@string/clear" />
+            <!-- android:onClick="onReceiveClear" -->
         </LinearLayout>
     </LinearLayout>
 

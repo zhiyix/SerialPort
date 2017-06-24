@@ -52,8 +52,8 @@ public class SerialPresensor implements ServiceConnection {
         mSerialView.updateBaudrateList(mBaudrates);
 
         mSerialView.onSerialStatusChanged(mSerialService.isSerialOpend());
-        Log.d(TAG, "onServiceConnected, {" + mSerialService +
-                "}, ID : " + mSerialService.getId());
+        Log.d(TAG, "Connected a new Service { " + mSerialService +
+                " }, ID : " + mSerialService.getId());
     }
 
     @Override
@@ -88,7 +88,7 @@ public class SerialPresensor implements ServiceConnection {
     public void doBindService() {
         Intent intent =
                 /*SerialService.setServiceAlarm(mContext, POLL_INTERVAL, true);*/
-                SerialService.newIntent(mContext);
+                SerialService.newIntent(mContext); /* 同一个Context同一个Service*/
         mContext.startService(intent);
         mContext.bindService(intent, this, Context.BIND_AUTO_CREATE);
     }
@@ -131,9 +131,9 @@ public class SerialPresensor implements ServiceConnection {
     }
 
     public void doToggleService() {
-        boolean shouldStartAlarm = !SerialService.isServiceAlarmOn(mContext);
+        boolean shouldStartAlarm = !(SerialService
+                .isServiceAlarmOn(mContext)); /* 同一个Context同一个Service*/
         SerialService.setServiceAlarm(mContext, POLL_INTERVAL, shouldStartAlarm);
-        Log.i(TAG, "doToggleService, STATUS : " + shouldStartAlarm);
     }
 
     public boolean isServiceAlarmOn() {
