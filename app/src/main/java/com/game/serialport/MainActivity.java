@@ -37,8 +37,6 @@ public class MainActivity extends AppCompatActivity
     private EditText mSendEditText;
     private Button mSendButton;
     private Button mStopButton;
-    private ReadThread mReadThread;
-    private ByteBuffer mReadBuffer;
 
     private Switch mSerialSwitch;
     private String[] mDevices;
@@ -195,32 +193,6 @@ public class MainActivity extends AppCompatActivity
         mReceivedTextView = (TextView) findViewById(R.id.received_data);
     }
 
-    protected void initViews1() {
-        mReceiveTextView = (TextView) findViewById(R.id.main_recive_tv);
-        mReceiveButton = (Button) findViewById(R.id.main_recive_b);
-        mSendEditText = (EditText) findViewById(R.id.main_send_et);
-        mSendButton = (Button) findViewById(R.id.main_send_b);
-        mStopButton = (Button) findViewById(R.id.main_stop_b);
-        mReceiveButton.setOnClickListener(this);
-        mSendButton.setOnClickListener(this);
-        mStopButton.setOnClickListener(this);
-        /*
-        try {
-            //设置串口号、波特率，
-            mSerialUtilOld = new SerialUtilOld(path, baudrate, 0);
-        } catch (NullPointerException e) {
-            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        } finally {
-            if (mSerialUtilOld.isSerialOpend()) {
-                mReadThread = new ReadThread();
-                mReadThread.start();
-                Log.d(TAG, "open serial successful!");
-            }
-        }*/
-        mReadBuffer = ByteBuffer.allocate(READ_BUFFER_SIZE);
-    }
-
     @Override
     public void onClick(View view) {
         switch (view.getId()) {
@@ -248,7 +220,7 @@ public class MainActivity extends AppCompatActivity
             break;
             case R.id.main_stop_b: {
                 //停止接收
-                mReadThread.interrupt();
+                //mReadThread.interrupt();
                 mReceiveTextView.setText("");
             }
             break;
@@ -294,50 +266,6 @@ public class MainActivity extends AppCompatActivity
             Log.d(TAG, "SerialService.Callback.onDataReceived()");
         }
     };
-
-
-
-    private class ReadThread extends Thread {
-        @Override
-        public void run() {
-            super.run();
-            while (!Thread.currentThread().isInterrupted()) {
-                int size = READ_BUFFER_SIZE;
-                try {
-                    byte [] data = mSerialUtilOld.read(READ_TIMEOUT_MSEC);
-                    if (null != data && data.length > 0) {
-                        String rcv = SerialUtilOld.bytesToHexString(data, data.length);
-                        onDataReceived(rcv);
-                        Log.d(TAG, "read size is : " + data.length + ", data : " + rcv);
-                    }
-                } catch (NullPointerException e) {
-                    onDataReceived("-1");
-                    e.printStackTrace();
-                    mReadThread.interrupt();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    onDataReceived("-1");
-                    mReadThread.interrupt();
-                }
-            }
-        }
-    }
-
-
-
-    protected void onDataReceived(final String data) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                //显示出来
-                if ("-1".equals(data)) {
-                    Toast.makeText(MainActivity.this, "串口设置有误，无法接收", Toast.LENGTH_SHORT).show();
-                } else {
-                    mReceiveTextView.append(data);
-                }
-            }
-        });
-    }
 
     private class CustomApdater extends ArrayAdapter<String> implements SpinnerAdapter {
 

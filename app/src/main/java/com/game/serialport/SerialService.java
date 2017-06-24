@@ -128,7 +128,7 @@ public class SerialService extends Service {
         if (isSerialOpend()) {
             try {
                 mSerialAbortRequest = true;
-                Thread.sleep(10);
+                Thread.sleep(1);
                 mSerialPort.close();
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage());
