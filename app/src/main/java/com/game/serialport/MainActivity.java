@@ -8,6 +8,8 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -29,7 +31,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class MainActivity extends AppCompatActivity
         implements SerialView, View.OnClickListener {
-    private static final String TAG = SerialPresensor.class.getSimpleName();
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     private TextView mReceiveTextView;
     private Button mReceiveButton;
@@ -66,6 +68,12 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        return super.onCreateOptionsMenu(menu);
+        MenuItem toggleItem = menu.findItem(R.id.menu_item_toggle_polling);
+    }
+
+    @Override
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart()");
@@ -96,6 +104,17 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "onDestroy()");
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_toggle_polling:
+                mSerialPresensor.doToggleService();
+                this.invalidateOptionsMenu();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
     private void initViews() {
         mSerialSwitch = (Switch) findViewById(R.id.serial_switch);
         mDevicesSpinner = (Spinner) findViewById(R.id.devices);
@@ -107,8 +126,8 @@ public class MainActivity extends AppCompatActivity
                     isNullOrEmpty((String) mDevicesSpinner.getSelectedItem());
                     mSerialPresensor.doOpenSerial(mDevicesSpinner.getSelectedItemPosition(),
                             (String) mBaudSpinner.getSelectedItem());
-                    Log.d(TAG, mDevicesSpinner.getSelectedItemPosition() + "," +
-                            mDevicesSpinner.getSelectedItemId());
+                    /*Log.d(TAG, mDevicesSpinner.getSelectedItemPosition() + "," +
+                            mDevicesSpinner.getSelectedItemId());*/
                 } else {
                     mSerialPresensor.doCloseSerial();
                 }

@@ -1,6 +1,8 @@
 package com.game.serialport;
 
+import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -10,12 +12,14 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.UUID;
 
 import android_serialport_api.SerialPort;
 import android_serialport_api.SerialUtilOld;
@@ -37,6 +41,8 @@ public class SerialService extends IntentService {
     public static final int EVENT_MESSAGE_RECEIVED = 1;
     public static final int EVENT_MESSAGE_SENDED = 2;
 
+    private final UUID id;
+
     private SerialBinder mSerialBinder;
     private SerialManager mSerialManager = new SerialManager();
     private volatile SerialPort mSerialPort = null;
@@ -52,6 +58,34 @@ public class SerialService extends IntentService {
 
     public SerialService() {
         super(TAG);
+        // Generate unique identifier
+        this.id = UUID.randomUUID();
+    }
+
+    public static Intent newIntent(Context context) {
+        return new Intent(context, SerialService.class);
+    }
+
+    public static Intent setServiceAlarm(Context context, int interval, boolean isOn) {
+        Intent intent = newIntent(context);
+        PendingIntent pendingIntent = PendingIntent.getService(context, 0, intent, 0);
+
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        if (isOn) {
+            alarmManager.setInexactRepeating(AlarmManager.ELAPSED_REALTIME,
+                    SystemClock.elapsedRealtime(), interval, pendingIntent);
+        }  else {
+            alarmManager.cancel(pendingIntent);
+            pendingIntent.cancel();
+        }
+        return intent;
+    }
+
+    public static boolean isServiceAlarmOn(Context context) {
+        Intent intent = SerialService.newIntent(context);
+        PendingIntent pendingIntent =
+                PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_NO_CREATE);
+        return pendingIntent != null;
     }
 
     @Override
@@ -76,7 +110,7 @@ public class SerialService extends IntentService {
         super.onDestroy();
         mHandlerThread.quit();
         Log.d(TAG, "onDestroy");
-}
+    }
 
     @Nullable
     @Override
@@ -92,7 +126,14 @@ public class SerialService extends IntentService {
         return super.onUnbind(intent);
     }
 
+    @Override
+    protected void onHandleIntent(@Nullable Intent intent) {
+        sendMessage("010300000037041C");
+        Log.d(TAG, "Received an new Intent " + intent + ", ID : " + id);
+    }
 
+
+    public UUID getId() { return this.id; }
 
     public String[] getSerialPorts() {
         Log.d(TAG, "getSerialPorts  : " + Arrays.toString(mSerialManager.getSerialPorts()));

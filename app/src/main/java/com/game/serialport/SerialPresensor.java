@@ -20,6 +20,7 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class SerialPresensor implements ServiceConnection {
     private static final String TAG = SerialPresensor.class.getSimpleName();
+    private static final int POLL_INTERVAL = 1000 * 60; /* 60 seconds */
 
     private String[] mDevices;
     private String[] mDevicePaths;
@@ -48,7 +49,7 @@ public class SerialPresensor implements ServiceConnection {
         mSerialView.updateBaudrateList(mBaudrates);
 
         mSerialView.onSerialStatusChanged(mSerialService.isSerialOpend());
-        Log.d(TAG, "onServiceConnected()");
+        Log.d(TAG, "onServiceConnected," + mSerialService + ", ID : " + mSerialService.getId());
     }
 
     @Override
@@ -59,8 +60,9 @@ public class SerialPresensor implements ServiceConnection {
     }
 
     public void doBindService() {
-        Intent intent = new Intent(mContext, SerialService.class);
-        mContext.startService(intent);
+        Intent intent = SerialService.setServiceAlarm(mContext, POLL_INTERVAL, true);
+                /*SerialService.newIntent(mContext);
+        mContext.startService(intent);*/
         mContext.bindService(intent, this, Context.BIND_AUTO_CREATE);
     }
 
@@ -99,6 +101,12 @@ public class SerialPresensor implements ServiceConnection {
             return false;
         }
         return true;
+    }
+
+    public void doToggleService() {
+        boolean shouldStartAlarm = !SerialService.isServiceAlarmOn(mContext);
+        SerialService.setServiceAlarm(mContext, POLL_INTERVAL, shouldStartAlarm);
+        Log.i(TAG, "doToggleService, STATUS : " + shouldStartAlarm);
     }
 
     private SerialService.Callback mCallback = new SerialService.Callback() {
