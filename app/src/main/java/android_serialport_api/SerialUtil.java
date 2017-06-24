@@ -24,7 +24,8 @@ public enum SerialUtil {
      * @param flags 标志位
      * @throws NullPointerException 有错误的话，抛出异常
      */
-    public void init(String path, int baudrate, int flags)throws NullPointerException {
+    public void init(String path, int baudrate, int flags)
+            throws NullPointerException, SecurityException, InterruptedException {
         try {
             serialPort=new SerialPort(new File(path),baudrate,flags);
         } catch (IOException e) {

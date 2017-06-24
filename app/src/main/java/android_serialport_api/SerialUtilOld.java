@@ -1,7 +1,9 @@
 package android_serialport_api;
 
 import android.support.v4.util.Pools;
+import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,19 +11,23 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
+import java.util.Calendar;
 
 /**
  * Created by Administrator on 2016/7/22.
  */
 public class SerialUtilOld {
-    private SerialPort mSerialPort;
+    private static final String TAG = "SerialUtil";
+    private static final int MAX = 512;
+
+    public SerialPort mSerialPort;
     private InputStream mInputStream;
     private OutputStream mOutputStream;
     private volatile int size = -1;
-    private static final int MAX = 512;
     private String path;
 
-    public SerialUtilOld(String path, int baudrate, int flags ) throws NullPointerException{
+    public SerialUtilOld(String path, int baudrate, int flags )
+            throws NullPointerException, SecurityException, InterruptedException {
         try {
             mSerialPort = new SerialPort(new File(path),baudrate,flags);
         } catch (IOException e) {
@@ -69,6 +75,7 @@ public class SerialUtilOld {
             return null;
         }
     }
+
     public synchronized byte[] getDataByte() throws NullPointerException{
         byte [] buffer = new byte[MAX];
         if (mInputStream == null) {
@@ -87,25 +94,25 @@ public class SerialUtilOld {
         }
     }
 
-    public int read(ByteBuffer byteBuffer) throws NullPointerException{
+    public byte[] read(long tomsec) throws NullPointerException {
+        ByteArrayOutputStream out=new ByteArrayOutputStream();
         byte [] buffer = new byte[MAX];
         if (mInputStream == null) {
             throw new NullPointerException("mInputStream is null");
         }
         try {
-            if (mInputStream.available() > 0){
-                int size = mInputStream.read(buffer, 0, MAX);
-                if (size > 0) {
-                    byteBuffer = ByteBuffer.wrap(buffer, 0, size);
+            if (mInputStream.available() > 0) {
+                int size = -1;
+                if ((size = mInputStream.read(buffer, 0, MAX)) != -1) {
+                    out.write(buffer, 0, size);
                 }
-                return size;
-            } else {
-                return -1;
+                return out.toByteArray();
             }
+            return null;
         } catch (IOException e) {
             e.printStackTrace();
-            return -1;
         }
+        return null;
     }
 
     /**
@@ -144,18 +151,28 @@ public class SerialUtilOld {
      * @return
      */
     public static byte[] hexStringToBytes(String hexString){
-        if (hexString==null||hexString.equals("")) return null;
-        hexString=hexString.toUpperCase();
-        int length=hexString.length()/2;
-        char[] hexChars=hexString.toCharArray();
-        byte[] d=new byte[length];
-        for (int i = 0; i <length ; i++) {
-            int pos=i*2;
-            d[i]=(byte)(charToByte(hexChars[pos])<<4|charToByte(hexChars[pos+1]));
+        if (hexString == null || hexString.equals("")) {
+            return null;
         }
-        return d;
+        hexString = hexString.toUpperCase();
+        int length = hexString.length()/2;
+        char[] hexChars = hexString.toCharArray();
+        byte[] data = new byte[length];
+        for (int i = 0; i < length ; i++) {
+            int pos = i*2;
+            data[i] = (byte)(charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos+1]));
+        }
+        return data;
     }
+
     private static byte charToByte(char c) {
         return (byte) "0123456789ABCDEF".indexOf(c);
+    }
+
+    public boolean isSerialOpend() {
+        return mSerialPort != null;
+    }
+    public void close() {
+        mSerialPort.close();
     }
 }
