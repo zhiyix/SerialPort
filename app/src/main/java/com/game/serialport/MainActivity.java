@@ -23,59 +23,46 @@ import java.nio.ByteBuffer;
 
 import android_serialport_api.SerialUtilOld;
 
+import static com.game.serialport.R.string.device;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
 
 public class MainActivity extends AppCompatActivity
-        implements ServiceConnection, View.OnClickListener {
-    private static final String TAG = "MainActivity";
-    private static final int READ_BUFFER_SIZE = 1024;
-    private static final int READ_TIMEOUT_MSEC = 50;
+        implements SerialView, View.OnClickListener {
+    private static final String TAG = SerialPresensor.class.getSimpleName();
 
     private TextView mReceiveTextView;
     private Button mReceiveButton;
     private EditText mSendEditText;
-    private Button mSendButton;
     private Button mStopButton;
+    private Button mSendButton;
 
     private Switch mSerialSwitch;
-    private String[] mDevices;
-    private String[] mDevicePaths;
-    private String[] mBaudrates;
+    //private String[] mDevices;
+    //private String[] mDevicePaths;
+    //private String[] mBaudrates;
     private Spinner mDevicesSpinner;
     private Spinner mBaudSpinner;
     private EditText mSendDataEditText;
     private TextView mSendTextView;
     private TextView mReceivedTextView;
 
-    private Context mContext;
-    private SerialService mSerialService;
-    private SerialUtilOld mSerialUtilOld;
+    private SerialPresensor mSerialPresensor;
+    //private Context mContext;
+    //private SerialService mSerialService;
     private String path = "/dev/ttyO2";
-    private int baudrate = 115200;
-    private int flags = 0;
-    private int size = -1;
+    private int baudrate = 16; //115200;
+    //private int flags = 0;
+    //private int size = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mContext = this;
         setContentView(R.layout.activity_view);
 
-        try {
-            //设置串口号、波特率，
-            mSerialUtilOld = new SerialUtilOld("/dev/ttyO2", 115200, 0);
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-        } finally {
-            if (mSerialUtilOld.isSerialOpend()) {
-                Log.d(TAG, "open serial successful!");
-                mSerialUtilOld.close();
-            }
-        }
+        mSerialPresensor = new SerialPresensor(this, this);
         initViews();
-        doBindService();
+        mSerialPresensor.doBindService();
     }
 
     @Override
@@ -105,70 +92,25 @@ public class MainActivity extends AppCompatActivity
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        doUnbindService();
+        mSerialPresensor.doUnbindService();
         Log.d(TAG, "onDestroy()");
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder service) {
-        mSerialService = ((SerialService.SerialBinder) service).getService();
-        mSerialService.registerCallback(mCallback);
-        mSerialSwitch.setSelected(mSerialService.isSerialOpend());
-        mDevices = mSerialService.getSerialPorts();
-        mDevicePaths = mSerialService.getSerialPaths();
-        checkArgument(mDevicePaths.length == mDevicePaths.length);
-        mDevicesSpinner.setAdapter(new CustomApdater(mContext,
-                android.R.layout.simple_dropdown_item_1line, mDevices));
-        Log.d(TAG, "onServiceConnected()");
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
-        mSerialService.unregisterCallback(mCallback);
-        mSerialService = null;
-        Log.e(TAG, "onServiceDisconnected()");
-    }
-
-    private void doBindService() {
-        Intent intent = new Intent(this, SerialService.class);
-        mContext.startService(intent);
-        mContext.bindService(intent, this, Context.BIND_AUTO_CREATE);
-    }
-
-    private void doUnbindService() {
-        if(mSerialService!=null && mSerialService.isSerialOpend()){
-            mSerialService.closeSerial();
-        }
-        mContext.unbindService(this);
     }
 
     private void initViews() {
         mSerialSwitch = (Switch) findViewById(R.id.serial_switch);
         mDevicesSpinner = (Spinner) findViewById(R.id.devices);
         mBaudSpinner = (Spinner) findViewById(R.id.baudrates);
-        mBaudrates = getResources().getStringArray(R.array.baudrates);
-        mBaudSpinner.setAdapter(new CustomApdater(mContext,
-                android.R.layout.simple_dropdown_item_1line, mBaudrates));
         mSerialSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     isNullOrEmpty((String) mDevicesSpinner.getSelectedItem());
+                    mSerialPresensor.doOpenSerial(mDevicesSpinner.getSelectedItemPosition(),
+                            (String) mBaudSpinner.getSelectedItem());
                     Log.d(TAG, mDevicesSpinner.getSelectedItemPosition() + "," +
                             mDevicesSpinner.getSelectedItemId());
-                    String device = (String) mDevicePaths[mDevicesSpinner.getSelectedItemPosition()];
-                    String baudrate = (String) mBaudSpinner.getSelectedItem();
-                    if (isNullOrEmpty(device)) {
-                        Toast.makeText(mContext, "Device is null! Please selected device first!",
-                                Toast.LENGTH_SHORT).show();
-                    } else if (isNullOrEmpty(baudrate)) {
-                        Toast.makeText(mContext, "Baudrate is null! Please selected baudrate first!",
-                                Toast.LENGTH_SHORT).show();
-                    } else {
-                        mSerialService.openSerial(device, baudrate);
-                    }
                 } else {
-                    mSerialService.closeSerial();
+                    mSerialPresensor.doCloseSerial();
                 }
             }
         });
@@ -176,14 +118,12 @@ public class MainActivity extends AppCompatActivity
         mSendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mSerialService != null && mSerialService.isSerialOpend()) {
-                    CharSequence data = mSendDataEditText.getText();
-                    if ((null == data) || !(data.length() > 0)) {
-                        return;
-                    }
-                    mSerialService.sendMessage(data.toString());
-                } else {
-                    Toast.makeText(mContext, "Please open serial!", Toast.LENGTH_SHORT).show();
+                CharSequence data = mSendDataEditText.getText();
+                if ((null == data) || !(data.length() > 0)) {
+                    return;
+                }
+                if (!mSerialPresensor.doSentSerial(data)) {
+                    Toast.makeText(MainActivity.this, "Please open serial!", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -208,14 +148,14 @@ public class MainActivity extends AppCompatActivity
             case R.id.main_send_b: {
                 String context = mSendEditText.getText().toString().trim();
                 Log.d(TAG, "onClick: " + context);
-                try {
+                /*try {
                     byte[] data = SerialUtilOld
                             .hexStringToBytes(mSendEditText.getText().toString().trim());
                     mSerialUtilOld.setData(data);
                 } catch (NullPointerException e) {
                     Toast.makeText(MainActivity.this, "串口设置有误，无法发送", Toast.LENGTH_SHORT).show();
                     e.printStackTrace();
-                }
+                }*/
             }
             break;
             case R.id.main_stop_b: {
@@ -235,37 +175,50 @@ public class MainActivity extends AppCompatActivity
         mReceivedTextView.setText("");
     }
 
-
-
-
-    private SerialService.Callback mCallback = new SerialService.Callback() {
-
-        @Override
-        public void onDataSend(String data) {
-            CharSequence oldData = mSendTextView.getText();
-            StringBuffer sb = new StringBuffer();
-            if(oldData != null && oldData.length() > 0){
-                sb.append(oldData);
-                sb.append("\n");
-            }
-            sb.append(data);
-            mSendTextView.setText(sb.toString());
-            Log.d(TAG, "SerialService.Callback.onDataSend()");
+    @Override
+    public void onSentTextViewChanged(String data) {
+        CharSequence oldData = mSendTextView.getText();
+        StringBuffer sb = new StringBuffer();
+        if(oldData != null && oldData.length() > 0){
+            sb.append(oldData);
+            sb.append("\n");
         }
+        sb.append(data);
+        mSendTextView.setText(sb.toString());
+        Log.d(TAG, "SerialService.onDataSend()");
+    }
 
-        @Override
-        public void onDataReceived(String data) {
-            CharSequence oldData = mReceivedTextView.getText();
-            StringBuffer sb = new StringBuffer();
-            if(oldData != null && oldData.length() > 0){
-                sb.append(oldData);
-                sb.append("\n");
-            }
-            sb.append(data);
-            mReceivedTextView.setText(sb.toString());
-            Log.d(TAG, "SerialService.Callback.onDataReceived()");
+    @Override
+    public void onReceivedTextViewChanged(String data) {
+        CharSequence oldData = mReceivedTextView.getText();
+        StringBuffer sb = new StringBuffer();
+        if(oldData != null && oldData.length() > 0){
+            sb.append(oldData);
+            sb.append("\n");
         }
-    };
+        sb.append(data);
+        mReceivedTextView.setText(sb.toString());
+        Log.d(TAG, "SerialService.onDataReceived()");
+    }
+
+    @Override
+    public void onSerialStatusChanged(boolean isOpend) {
+        mSerialSwitch.setSelected(isOpend);
+    }
+
+    @Override
+    public void updateDeviceList(String[] devices) {
+        mDevicesSpinner.setAdapter(new CustomApdater(this,
+                android.R.layout.simple_dropdown_item_1line, devices));
+        mDevicesSpinner.setSelection(devices.length - 1);
+    }
+
+    @Override
+    public void updateBaudrateList(String[] baudrates) {
+        mBaudSpinner.setAdapter(new CustomApdater(MainActivity.this,
+                android.R.layout.simple_dropdown_item_1line, baudrates));
+        mBaudSpinner.setSelection(baudrate);
+    }
 
     private class CustomApdater extends ArrayAdapter<String> implements SpinnerAdapter {
 

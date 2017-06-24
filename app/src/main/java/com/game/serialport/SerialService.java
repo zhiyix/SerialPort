@@ -1,5 +1,6 @@
 package com.game.serialport;
 
+import android.app.IntentService;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -25,7 +26,7 @@ import static com.google.common.base.Strings.*;
  * Created by imetr on 2017/6/24.
  */
 
-public class SerialService extends Service {
+public class SerialService extends IntentService {
     private static final String TAG = SerialService.class.getSimpleName();
     private static final int READ_BUFFER_SIZE = 1024;
 
@@ -50,6 +51,7 @@ public class SerialService extends Service {
     private Callback mCallback;
 
     public SerialService() {
+        super(TAG);
     }
 
     @Override
@@ -102,12 +104,13 @@ public class SerialService extends Service {
         return mSerialManager.getSerialPaths();
     }
 
-    public void openSerial(String name, String speed) {
+    public boolean openSerial(String name, String speed) {
         Log.d(TAG, "openSerial name : " + name + " speed : " + speed);
         if (isSerialOpend() || isNullOrEmpty(name)) {
-            return;
+            return false;
         }
         mBgHandler.obtainMessage(EVENT_OPEN_SERIAL, Integer.valueOf(speed), 0, name).sendToTarget();
+        return true;
     }
 
     public boolean isSerialOpend() {
